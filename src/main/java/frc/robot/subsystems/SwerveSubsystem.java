@@ -19,6 +19,7 @@ import swervelib.parser.SwerveParser;
 import swervelib.telemetry.SwerveDriveTelemetry;
 import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
 import swervelib.SwerveDrive;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -27,7 +28,10 @@ import edu.wpi.first.math.util.Units;
 
 public class SwerveSubsystem extends SubsystemBase {
   private static final File swerveJsonDirectory = new File(Filesystem.getDeployDirectory(), "swerve");
-  public static final double MAX_METERS_PER_SECOND = 2;
+  private static final double MAX_METERS_PER_SECOND = 2;
+
+  private static final double RAMP_RATE = 1 / 1.5; //calculate how quickly to ramp to full power (1 / seconds)
+  private static final SlewRateLimiter DRIVE_RAMP_LIMITER = new SlewRateLimiter(RAMP_RATE);
   
   private final SwerveDrive swerveDrive;
   private boolean fieldRelativeDrive;
@@ -51,18 +55,12 @@ public class SwerveSubsystem extends SubsystemBase {
    * @param angularRotationX Rotation of the robot to set
    * @return Drive command.
    */
-  public Command driveCommand(DriveIntervalGradient driveGradientX, DriveIntervalGradient driveGradientY, DoubleSupplier angularRotationX) {
-    DoubleSupplier translationX = driveGradientX.getValueSupplier();
-    DoubleSupplier translationY = driveGradientY.getValueSupplier();
-
+  public Command driveCommand(DoubleSupplier driveGradientX, DoubleSupplier driveGradientY, DoubleSupplier angularRotationX) {
     return run(() -> {
-      //allow the interval gradients to update their values
-      driveGradientX.update();
-      driveGradientY.update();
-
       swerveDrive.drive(
-        new Translation2d(translationX.getAsDouble() * swerveDrive.getMaximumChassisVelocity(),
-                          translationY.getAsDouble() * swerveDrive.getMaximumChassisVelocity()),
+        new Translation2d(
+              DRIVE_RAMP_LIMITER.calculate(driveGradientX.getAsDouble()) * swerveDrive.getMaximumChassisVelocity(),
+              DRIVE_RAMP_LIMITER.calculate(driveGradientY.getAsDouble()) * swerveDrive.getMaximumChassisVelocity()),
         angularRotationX.getAsDouble() * swerveDrive.getMaximumChassisAngularVelocity(),
         fieldRelativeDrive,
         false);
