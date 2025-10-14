@@ -1,58 +1,48 @@
-// Copyright (c) FIRST and other WPILib contributors.
-// Open Source Software; you can modify and/or share it under the terms of
-// the WPILib BSD license file in the root directory of this project.
-
 package frc.robot;
 
-import frc.robot.subsystems.IntervalGradient;
+import frc.robot.subsystems.DriveIntervalGradient;
 import frc.robot.subsystems.SwerveSubsystem;
-
-import java.util.function.BooleanSupplier;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.button.CommandGenericHID;
-
+import edu.wpi.first.wpilibj2.command.button.CommandPS4Controller;
 
 public class RobotContainer {
-  Command driveCommand;
-  SwerveSubsystem swerve = new SwerveSubsystem();
-  Command resetGyro;
-  private CommandGenericHID m_driverController = new CommandGenericHID(0);
+  private static final double DEADBAND = 0.1;
+  
+  /**
+   * Fraction of joystick input applied per control loop to determine how quickly to ramp up to full speed.
+   * 
+   * Calculation:
+   *   alpha = 1 - (0.01)^(loopTime / desiredTimeToFullSpeed)
+   *   - loopTime: seconds between periodic() calls (e.g., 0.2s)
+   *   - desiredTimeToFullSpeed: how long it should take to reach ~99% input
+   *
+   * Current value (0.45) is for ~1.5 seconds to full speed with 0.2s periodic loops.
+   */
+  private static final double DRIVE_RAMPING_GRADIENT = 0.45;
 
-  IntervalGradient driveGradientX = new IntervalGradient(()->MathUtil.applyDeadband( m_driverController.getRawAxis(0),Constants.DEADBAND), .9);
-  IntervalGradient driveGradientY = new IntervalGradient(()->MathUtil.applyDeadband(-m_driverController.getRawAxis(1),Constants.DEADBAND), .9);
-  IntervalGradient driveGradientR = new IntervalGradient(()->MathUtil.applyDeadband( m_driverController.getRawAxis(2),Constants.DEADBAND), 1);
-  boolean isFieldRelativeDrive = false;
-  BooleanSupplier  fieldRelativeDriveSupplier = ()->isFieldRelativeDrive;
+  private final CommandPS4Controller driverController = new CommandPS4Controller(0);
+  private final DriveIntervalGradient driveGradientX = new DriveIntervalGradient(
+        () -> MathUtil.applyDeadband(driverController.getLeftY(), DEADBAND), 
+        DRIVE_RAMPING_GRADIENT);
+  private final DriveIntervalGradient driveGradientY = new DriveIntervalGradient(
+        () -> MathUtil.applyDeadband(-driverController.getLeftX(), DEADBAND),
+         DRIVE_RAMPING_GRADIENT);
+  private final SwerveSubsystem swerve = new SwerveSubsystem();
+
   public RobotContainer() {
-    driveCommand = swerve.driveCommand(
-        driveGradientX.getValueSupplier(),
-        driveGradientY.getValueSupplier(),
-        driveGradientR.getValueSupplier(),
-        fieldRelativeDriveSupplier
-      );
-      resetGyro = swerve.getResetGyro();
-    // Configure the trigger bindings
-    configureBindings();
-    swerve.setDefaultCommand(driveCommand);
-  }
-
-  private void configureBindings() {
-    m_driverController.button(1).onTrue(resetGyro);
-    m_driverController.button(7).onTrue (new InstantCommand(()->{isFieldRelativeDrive= true;}));
-    m_driverController.button(7).onFalse(new InstantCommand(()->{isFieldRelativeDrive=false;}));
-    
+    swerve.setDefaultCommand(swerve.driveCommand(
+      driveGradientX,
+      driveGradientY,
+      () -> MathUtil.applyDeadband(driverController.getRightX(), DEADBAND)));
   }
 
   /**
-   * Use this to pass the autonomous command to the main {@link Robot} class.
-   *
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    // An example command will be run in autonomous
     return null;
   }
+
 }
