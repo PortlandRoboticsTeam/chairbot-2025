@@ -30,7 +30,7 @@ public class SwerveSubsystem extends SubsystemBase {
   private static final File swerveJsonDirectory = new File(Filesystem.getDeployDirectory(), "swerve");
   private static final double MAX_METERS_PER_SECOND = 2;
 
-  private static final double RAMP_RATE = 1 / 3; //calculate how quickly to ramp to full power (1 / seconds)
+  private static final double RAMP_RATE = 1.0 / 3.0; //calculate how quickly to ramp to full power (1 / seconds)
   private static final SlewRateLimiter DRIVE_RAMP_Y_LIMITER = new SlewRateLimiter(RAMP_RATE);
   private static final SlewRateLimiter DRIVE_RAMP_X_LIMITER = new SlewRateLimiter(RAMP_RATE);
   
