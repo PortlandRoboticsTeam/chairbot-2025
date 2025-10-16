@@ -15,7 +15,7 @@ public class RobotContainer {
   public RobotContainer() {
     swerve.setDefaultCommand(swerve.driveCommand(
       () -> MathUtil.applyDeadband(driverController.getLeftY(), DEADBAND),
-      () -> MathUtil.applyDeadband(-driverController.getLeftX(), DEADBAND),
+      () -> MathUtil.applyDeadband(driverController.getLeftX(), DEADBAND),
       () -> MathUtil.applyDeadband(driverController.getRightX(), DEADBAND)));
   }
 
