@@ -30,10 +30,17 @@ public class SwerveSubsystem extends SubsystemBase {
   private static final File swerveJsonDirectory = new File(Filesystem.getDeployDirectory(), "swerve");
   private static final double MAX_METERS_PER_SECOND = 2;
 
-  private static final double RAMP_RATE = 1.0 / 3.0; //calculate how quickly to ramp to full power (1 / seconds)
-  private static final SlewRateLimiter DRIVE_RAMP_Y_LIMITER = new SlewRateLimiter(RAMP_RATE);
-  private static final SlewRateLimiter DRIVE_RAMP_X_LIMITER = new SlewRateLimiter(RAMP_RATE);
-  
+  // limit rotation to 50% max motor speed
+  private static final double MAX_ROTATION_PERCENT = .5;
+
+  // How quickly to ramp to full power (1 / seconds)
+  private static final double DRIVE_RAMP_RATE = 1.0 / 2.0;
+  private static final double ROTATION_RAMP_RATE = 1.0;
+
+  private final SlewRateLimiter DRIVE_RAMP_Y_LIMITER = new SlewRateLimiter(DRIVE_RAMP_RATE);
+  private final SlewRateLimiter DRIVE_RAMP_X_LIMITER = new SlewRateLimiter(DRIVE_RAMP_RATE);
+  private final SlewRateLimiter ROTATION_RAMP_LIMITER = new SlewRateLimiter(ROTATION_RAMP_RATE);
+
   private final SwerveDrive swerveDrive;
   private boolean fieldRelativeDrive;
 
@@ -62,7 +69,7 @@ public class SwerveSubsystem extends SubsystemBase {
         new Translation2d(
               DRIVE_RAMP_X_LIMITER.calculate(driveGradientX.getAsDouble()) * swerveDrive.getMaximumChassisVelocity(),
               DRIVE_RAMP_Y_LIMITER.calculate(driveGradientY.getAsDouble()) * swerveDrive.getMaximumChassisVelocity()),
-        angularRotationX.getAsDouble() * swerveDrive.getMaximumChassisAngularVelocity(),
+        ROTATION_RAMP_LIMITER.calculate(angularRotationX.getAsDouble()) * swerveDrive.getMaximumChassisAngularVelocity() * MAX_ROTATION_PERCENT,
         fieldRelativeDrive,
         false);
     });
