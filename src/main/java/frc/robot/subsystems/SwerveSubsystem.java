@@ -34,11 +34,15 @@ public class SwerveSubsystem extends SubsystemBase {
   private static final double MAX_ROTATION_PERCENT = .5;
 
   // How quickly to ramp to full power (1 / seconds)
-  private static final double DRIVE_RAMP_RATE = 1.0 / 2.0;
+  private static final double DRIVE_RAMP_ACCELERATE_RATE = 1.0 / 2.0;   // 2 seconds to full
+  private static final double DRIVE_RAMP_DECELERATE_RATE = 1.0 / 0.5;   // .5 second to zero
   private static final double ROTATION_RAMP_RATE = 1.0;
 
-  private final SlewRateLimiter DRIVE_RAMP_Y_LIMITER = new SlewRateLimiter(DRIVE_RAMP_RATE);
-  private final SlewRateLimiter DRIVE_RAMP_X_LIMITER = new SlewRateLimiter(DRIVE_RAMP_RATE);
+  private final AsymmetricSlewRateLimiter DRIVE_RAMP_X_LIMITER =
+    new AsymmetricSlewRateLimiter(DRIVE_RAMP_ACCELERATE_RATE, DRIVE_RAMP_DECELERATE_RATE);
+  private final AsymmetricSlewRateLimiter DRIVE_RAMP_Y_LIMITER =
+    new AsymmetricSlewRateLimiter(DRIVE_RAMP_ACCELERATE_RATE, DRIVE_RAMP_DECELERATE_RATE);
+      
   private final SlewRateLimiter ROTATION_RAMP_LIMITER = new SlewRateLimiter(ROTATION_RAMP_RATE);
 
   private final SwerveDrive swerveDrive;
