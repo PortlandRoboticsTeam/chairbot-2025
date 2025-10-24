@@ -43,6 +43,7 @@ public class SwerveSubsystem extends SubsystemBase {
 
   private final SwerveDrive swerveDrive;
   private boolean fieldRelativeDrive;
+  private boolean sportsMode;
 
   public SwerveSubsystem() {
     SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
@@ -67,9 +68,12 @@ public class SwerveSubsystem extends SubsystemBase {
     return run(() -> {
       swerveDrive.drive(
         new Translation2d(
-              DRIVE_RAMP_X_LIMITER.calculate(driveGradientX.getAsDouble()) * swerveDrive.getMaximumChassisVelocity(),
-              DRIVE_RAMP_Y_LIMITER.calculate(driveGradientY.getAsDouble()) * swerveDrive.getMaximumChassisVelocity()),
-        ROTATION_RAMP_LIMITER.calculate(angularRotationX.getAsDouble()) * swerveDrive.getMaximumChassisAngularVelocity() * MAX_ROTATION_PERCENT,
+              DRIVE_RAMP_X_LIMITER.calculate(driveGradientX.getAsDouble())
+                 * swerveDrive.getMaximumChassisVelocity() * (sportsMode ? 1.0 : 0.5),
+              DRIVE_RAMP_Y_LIMITER.calculate(driveGradientY.getAsDouble())
+                 * swerveDrive.getMaximumChassisVelocity() * (sportsMode ? 1.0 : 0.5)),
+        ROTATION_RAMP_LIMITER.calculate(angularRotationX.getAsDouble())
+           * swerveDrive.getMaximumChassisAngularVelocity() * MAX_ROTATION_PERCENT,
         fieldRelativeDrive,
         false);
     });
@@ -82,6 +86,14 @@ public class SwerveSubsystem extends SubsystemBase {
 
   public Command getResetGyro() {
     return runOnce(() -> swerveDrive.zeroGyro());
+  }
+
+  public Command setFieldRelativeDrive(boolean rel) {
+    return runOnce(() -> this.fieldRelativeDrive = rel);
+  }
+
+  public Command setSportsMode(boolean mode) {
+    return runOnce(() -> this.sportsMode = mode);
   }
 
   public void setupPathPlanner() {

@@ -17,6 +17,14 @@ public class RobotContainer {
       () -> MathUtil.applyDeadband(driverController.getLeftY(), DEADBAND),
       () -> MathUtil.applyDeadband(driverController.getLeftX(), DEADBAND),
       () -> MathUtil.applyDeadband(driverController.getRightX(), DEADBAND)));
+
+    driverController.cross().onTrue(swerve.getResetGyro());
+    driverController.L1()
+      .onTrue(swerve.setFieldRelativeDrive(true))
+      .onFalse(swerve.setFieldRelativeDrive(false));
+    driverController.R1()
+      .onTrue(swerve.setSportsMode(true))
+      .onFalse(swerve.setSportsMode(false));
   }
 
   /**
