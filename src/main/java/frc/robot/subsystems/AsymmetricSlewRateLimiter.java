@@ -2,17 +2,6 @@ package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj.Timer;
 
-import static java.lang.Math.abs;
-import static java.lang.Math.signum;
-
-/**
- * Based on the FRC provided SlewRaterLimiter class, but this allows the decelration to be managed separately from 
- * the acceleration. 'Slew' is an industry term for 'rate of change'. This class is useful for drivetrains where
- * you want to be accelerate over time, but slow down faster than you speed up (asymmetric).
- * 
- * accelRate = maximum rise rate (units per second)
- * decelRate = maximum fall rate (units per second) — set higher to brake faster
- */
 public class AsymmetricSlewRateLimiter {
   private final double accelRate;
   private final double decelRate;
@@ -28,26 +17,53 @@ public class AsymmetricSlewRateLimiter {
     this.decelRate = decelRate;
   }
 
-  /** 
-   * Used to calculate the new value based on the input and the slew rate limits. It will compare
-   * the last calculation time and value to determine how much to change the output.
-   */
   public double calculate(double input) {
     double now = Timer.getFPGATimestamp();
-
-    // prevent divide by zero, value should be around .02s given how often the periodic methods are executed. 
-    double deltaTime = Math.max(1e-6, now - lastTime); 
-
-    // update state for the next calculation
+    double deltaTime = Math.max(1e-6, now - lastTime);
     lastTime = now;
-
-    // Compute the maximum allowed change this tick based on elapsed time and slew rates
-    double deltaInput = input - lastValue;
-    double maxDelta = deltaTime * ((deltaInput > 0.0) ? accelRate : decelRate);
-
-    //update input value with new limited value
-    lastValue += signum(deltaInput) * Math.min(abs(deltaInput), maxDelta);
-
+  
+    double cur = lastValue;
+  
+    // Magnitudes and signs
+    double curMag = Math.abs(cur);
+    double tgtMag = Math.abs(input);
+    double curSign = (cur == 0.0) ? 0.0 : Math.signum(cur);
+    double tgtSign = (input == 0.0) ? 0.0 : Math.signum(input);
+  
+    // If sign differs (and both non-zero), that is a direction reversal -> treat as decel (braking).
+    final boolean signReversal = (cur != 0.0 && input != 0.0 && curSign != tgtSign);
+  
+    // Choose rate:
+    double rate;
+    if (signReversal) {
+      rate = decelRate;
+    } else {
+      // If target magnitude is larger -> accelerating; else decelerating
+      rate = (tgtMag > curMag) ? accelRate : decelRate;
+    }
+  
+    double maxDelta = rate * deltaTime;
+  
+    // Move the magnitude toward the target magnitude (limited by maxDelta)
+    double magDelta = tgtMag - curMag;
+    double magChange = Math.copySign(Math.min(Math.abs(magDelta), maxDelta), magDelta);
+    double newMag = curMag + magChange;
+  
+    // Decide the sign of the new value
+    double newSign;
+    if (newMag == 0.0) {
+      // If we've reached zero, adopt the target sign so we can accelerate on that side next tick
+      newSign = tgtSign;
+    } else if (curMag == 0.0 && tgtMag > 0.0) {
+      // Starting from zero: go toward target sign (accelerating)
+      newSign = tgtSign;
+    } else {
+      // If magnitude is increasing, it should adopt target sign; if decreasing, keep current sign.
+      newSign = (tgtMag > curMag) ? tgtSign : curSign;
+    }
+  
+    lastValue = Math.copySign(newMag, newSign);
     return lastValue;
   }
+  
 }
