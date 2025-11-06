@@ -25,44 +25,38 @@ public class AsymmetricSlewRateLimiter {
     double cur = lastValue;
   
     // Magnitudes and signs
-    double curMag = Math.abs(cur);
-    double tgtMag = Math.abs(input);
-    double curSign = (cur == 0.0) ? 0.0 : Math.signum(cur);
-    double tgtSign = (input == 0.0) ? 0.0 : Math.signum(input);
+    double currentMagnitude = Math.abs(cur);
+    double targetMagnitude = Math.abs(input);
+    double currentSign = (cur == 0.0) ? 0.0 : Math.signum(cur);
+    double targetSign = (input == 0.0) ? 0.0 : Math.signum(input);
   
     // If sign differs (and both non-zero), that is a direction reversal -> treat as decel (braking).
-    final boolean signReversal = (cur != 0.0 && input != 0.0 && curSign != tgtSign);
+    final boolean signReversal = (cur != 0.0 && input != 0.0 && currentSign != targetSign);
   
-    // Choose rate:
     double rate;
     if (signReversal) {
       rate = decelRate;
     } else {
-      // If target magnitude is larger -> accelerating; else decelerating
-      rate = (tgtMag > curMag) ? accelRate : decelRate;
+      rate = (targetMagnitude > currentMagnitude) ? accelRate : decelRate;
     }
   
     double maxDelta = rate * deltaTime;
   
     // Move the magnitude toward the target magnitude (limited by maxDelta)
-    double magDelta = tgtMag - curMag;
-    double magChange = Math.copySign(Math.min(Math.abs(magDelta), maxDelta), magDelta);
-    double newMag = curMag + magChange;
-  
-    // Decide the sign of the new value
+    double magnitudeDelta = targetMagnitude - currentMagnitude;
+    double magnitudeChange = Math.copySign(Math.min(Math.abs(magnitudeDelta), maxDelta), magnitudeDelta);
+    double newMagnitue = currentMagnitude + magnitudeChange;
+
     double newSign;
-    if (newMag == 0.0) {
-      // If we've reached zero, adopt the target sign so we can accelerate on that side next tick
-      newSign = tgtSign;
-    } else if (curMag == 0.0 && tgtMag > 0.0) {
-      // Starting from zero: go toward target sign (accelerating)
-      newSign = tgtSign;
+    if (newMagnitue == 0.0                                      //magnitude reached zero
+        || (currentMagnitude == 0.0 && targetMagnitude > 0.0)   //accelerating from zero
+        || targetMagnitude > currentMagnitude) {                //increasing magnitude
+      newSign = targetSign;
     } else {
-      // If magnitude is increasing, it should adopt target sign; if decreasing, keep current sign.
-      newSign = (tgtMag > curMag) ? tgtSign : curSign;
+      newSign = currentSign;                                    //decelerating
     }
   
-    lastValue = Math.copySign(newMag, newSign);
+    lastValue = Math.copySign(newMagnitue, newSign);
     return lastValue;
   }
   

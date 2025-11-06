@@ -19,7 +19,6 @@ import swervelib.parser.SwerveParser;
 import swervelib.telemetry.SwerveDriveTelemetry;
 import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
 import swervelib.SwerveDrive;
-import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -28,22 +27,23 @@ import edu.wpi.first.math.util.Units;
 
 public class SwerveSubsystem extends SubsystemBase {
   private static final File swerveJsonDirectory = new File(Filesystem.getDeployDirectory(), "swerve");
-  private static final double MAX_METERS_PER_SECOND = 2;
+  private static final double MAX_METERS_PER_SECOND = 4;
 
   // limit rotation to 50% max motor speed
-  private static final double MAX_ROTATION_PERCENT = .5;
+  private static final double MAX_ROTATION_PERCENT = .75;
 
   // How quickly to ramp to full power (1 / seconds)
   private static final double DRIVE_RAMP_ACCELERATE_RATE = 1.0 / 2.0;   // 2 seconds to full
   private static final double DRIVE_RAMP_DECELERATE_RATE = 1.0 / 0.5;   // .5 second to zero
-  private static final double ROTATION_RAMP_RATE = 1.0;
 
-  private final AsymmetricSlewRateLimiter DRIVE_RAMP_X_LIMITER =
-    new AsymmetricSlewRateLimiter(DRIVE_RAMP_ACCELERATE_RATE, DRIVE_RAMP_DECELERATE_RATE);
-  private final AsymmetricSlewRateLimiter DRIVE_RAMP_Y_LIMITER =
-    new AsymmetricSlewRateLimiter(DRIVE_RAMP_ACCELERATE_RATE, DRIVE_RAMP_DECELERATE_RATE);
+  private final AsymmetricSlewRateLimiter DRIVE_RAMP_X_LIMITER
+    = new AsymmetricSlewRateLimiter(DRIVE_RAMP_ACCELERATE_RATE, DRIVE_RAMP_DECELERATE_RATE);
+  private final AsymmetricSlewRateLimiter DRIVE_RAMP_Y_LIMITER
+    = new AsymmetricSlewRateLimiter(DRIVE_RAMP_ACCELERATE_RATE, DRIVE_RAMP_DECELERATE_RATE);
       
-  private final SlewRateLimiter ROTATION_RAMP_LIMITER = new SlewRateLimiter(ROTATION_RAMP_RATE);
+  // ramp up to full speed in 1 second, decelerate in 1/4 second
+  private final AsymmetricSlewRateLimiter ROTATION_RAMP_LIMITER
+    = new AsymmetricSlewRateLimiter(1.0, 1.0 / 0.25); 
 
   private final SwerveDrive swerveDrive;
   private boolean fieldRelativeDrive;
